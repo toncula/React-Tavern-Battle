@@ -1,18 +1,17 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  PlayerState, 
-  CardData, 
-  GamePhase, 
+import {
+  PlayerState,
+  CardData,
+  GamePhase,
   RoundSummary
 } from './types';
-import { 
-  INITIAL_GOLD, 
+import {
+  INITIAL_GOLD,
   INITIAL_INCOME,
   MAX_INCOME,
-  INITIAL_ADVENTURE_POINTS, 
+  INITIAL_ADVENTURE_POINTS,
   MAX_ADVENTURE_POINTS,
-  INITIAL_PLAYER_HP, 
+  INITIAL_PLAYER_HP,
   generateRandomCard,
   getBaseTavernCost,
   MAX_ROUNDS,
@@ -46,16 +45,16 @@ const App: React.FC = () => {
     adventurePoints: INITIAL_ADVENTURE_POINTS,
     tavernTier: 1,
     tavernUpgradeCost: getBaseTavernCost(1),
-    hand: Array(7).fill(null) 
+    hand: Array(7).fill(null)
   });
-  
+
   const [shopCards, setShopCards] = useState<CardData[]>([]);
-  const [isShopLocked, setIsShopLocked] = useState(false); 
+  const [isShopLocked, setIsShopLocked] = useState(false);
 
   const [enemyConfig, setEnemyConfig] = useState<CardData[]>([]);
   const [roundSummary, setRoundSummary] = useState<RoundSummary | null>(null);
 
-  const [hoveredCardInfo, setHoveredCardInfo] = useState<{card: CardData, rect: DOMRect} | null>(null);
+  const [hoveredCardInfo, setHoveredCardInfo] = useState<{ card: CardData, rect: DOMRect } | null>(null);
 
   const [language, setLanguage] = useState<Language>('en');
   const t = getTranslation(language);
@@ -64,7 +63,7 @@ const App: React.FC = () => {
 
   // Transition & Effect States
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [pendingTurnEffects, setPendingTurnEffects] = useState<{gold: number, effects: string[]} | null>(null);
+  const [pendingTurnEffects, setPendingTurnEffects] = useState<{ gold: number, effects: string[] } | null>(null);
 
   // Custom Hooks
   const { calculateTurnEndEffects } = useCardEffects(language);
@@ -81,68 +80,68 @@ const App: React.FC = () => {
   const refreshShop = (tierOverride?: number) => {
     const tier = tierOverride !== undefined ? tierOverride : player.tavernTier;
     const newShop: CardData[] = [];
-    const count = Math.min(6, 3 + tier); 
-    for(let i=0; i<count; i++) {
+    const count = Math.min(6, 3 + tier);
+    for (let i = 0; i < count; i++) {
       newShop.push(generateRandomCard(tier));
     }
     setShopCards(newShop);
   };
 
   const handleStartGame = () => {
-      handleInteraction();
-      playSound('click');
-      const initialTier = 1;
-      setPlayer({
-        hp: INITIAL_PLAYER_HP,
-        gold: INITIAL_GOLD,
-        income: INITIAL_INCOME,
-        adventurePoints: INITIAL_ADVENTURE_POINTS,
-        tavernTier: initialTier,
-        tavernUpgradeCost: getBaseTavernCost(initialTier),
-        hand: Array(7).fill(null)
-      });
-      setRound(1);
-      setIsInfiniteMode(false);
-      setRoundSummary(null);
-      setEnemyConfig([]);
-      setNotifications([]);
-      setIsShopLocked(false);
-      setPendingTurnEffects(null);
-      setIsTransitioning(false);
-      
-      refreshShop(initialTier);
-      setPhase(GamePhase.SHOP);
+    handleInteraction();
+    playSound('click');
+    const initialTier = 1;
+    setPlayer({
+      hp: INITIAL_PLAYER_HP,
+      gold: INITIAL_GOLD,
+      income: INITIAL_INCOME,
+      adventurePoints: INITIAL_ADVENTURE_POINTS,
+      tavernTier: initialTier,
+      tavernUpgradeCost: getBaseTavernCost(initialTier),
+      hand: Array(7).fill(null)
+    });
+    setRound(1);
+    setIsInfiniteMode(false);
+    setRoundSummary(null);
+    setEnemyConfig([]);
+    setNotifications([]);
+    setIsShopLocked(false);
+    setPendingTurnEffects(null);
+    setIsTransitioning(false);
+
+    refreshShop(initialTier);
+    setPhase(GamePhase.SHOP);
   };
 
   const handleOpenCodex = () => {
-      handleInteraction();
-      playSound('click');
-      setPhase(GamePhase.CODEX);
+    handleInteraction();
+    playSound('click');
+    setPhase(GamePhase.CODEX);
   };
 
   const handleBackToMenu = () => {
-      handleInteraction();
-      playSound('click');
-      setPhase(GamePhase.START_MENU);
+    handleInteraction();
+    playSound('click');
+    setPhase(GamePhase.START_MENU);
   };
 
   const handleCardHover = (card: CardData, rect: DOMRect) => {
     handleInteraction();
     setHoveredCardInfo({ card, rect });
   };
-  
+
   const handleCardLeave = () => {
-     setHoveredCardInfo(null);
+    setHoveredCardInfo(null);
   };
 
   const nextEnemies = useMemo(() => getEnemyComposition(round), [round]);
 
   const playerArmyValue = useMemo(() => {
-      return player.hand.reduce((total, card) => total + (card ? card.value : 0), 0);
+    return player.hand.reduce((total, card) => total + (card ? card.value : 0), 0);
   }, [player.hand]);
 
   const enemyArmyValue = useMemo(() => {
-      return enemyConfig.reduce((total, card) => total + card.value, 0);
+    return enemyConfig.reduce((total, card) => total + card.value, 0);
   }, [enemyConfig]);
 
   const startCombat = () => {
@@ -151,37 +150,37 @@ const App: React.FC = () => {
 
     playSound('click');
     setNotifications([]);
-    setHoveredCardInfo(null); 
+    setHoveredCardInfo(null);
     setIsTransitioning(true);
 
     const { newHand, goldGenerated, summaryEffects } = calculateTurnEndEffects(player.hand);
-    
+
     setPlayer(prev => ({
-        ...prev,
-        hand: newHand
+      ...prev,
+      hand: newHand
     }));
 
     if (summaryEffects.length > 0) {
-        playSound('upgrade');
+      playSound('upgrade');
     }
 
     setPendingTurnEffects({
-        gold: goldGenerated,
-        effects: summaryEffects
+      gold: goldGenerated,
+      effects: summaryEffects
     });
 
     setTimeout(() => {
-        setEnemyConfig(nextEnemies);
-        setPhase(GamePhase.COMBAT);
-        setIsTransitioning(false);
-        setHoveredCardInfo(null); 
+      setEnemyConfig(nextEnemies);
+      setPhase(GamePhase.COMBAT);
+      setIsTransitioning(false);
+      setHoveredCardInfo(null);
     }, BATTLE_START_DELAY);
   };
 
   const handleBattleEnd = (winner: 'PLAYER' | 'ENEMY') => {
     if (winner === 'PLAYER' && round === MAX_ROUNDS && !isInfiniteMode) {
-        setPhase(GamePhase.VICTORY);
-        return;
+      setPhase(GamePhase.VICTORY);
+      return;
     }
 
     let damage = 0;
@@ -189,7 +188,7 @@ const App: React.FC = () => {
       damage = 1;
       const newHp = player.hp - damage;
       setPlayer(prev => ({ ...prev, hp: newHp }));
-      
+
       if (newHp <= 0) {
         setPhase(GamePhase.GAME_OVER);
         return;
@@ -197,17 +196,17 @@ const App: React.FC = () => {
     }
 
     const nextIncome = Math.min(player.income + 1, MAX_INCOME);
-    const baseGold = nextIncome; 
+    const baseGold = nextIncome;
     const effectGold = pendingTurnEffects?.gold || 0;
     const effectTexts = pendingTurnEffects?.effects || [];
 
     setRoundSummary({
-        winner,
-        damageTaken: damage,
-        baseGold,
-        effectGold: effectGold,
-        adventurePointsEarned: 1, 
-        effects: Array.from(new Set(effectTexts))
+      winner,
+      damageTaken: damage,
+      baseGold,
+      effectGold: effectGold,
+      adventurePointsEarned: 1,
+      effects: Array.from(new Set(effectTexts))
     });
     setPhase(GamePhase.ROUND_OVER);
   };
@@ -225,85 +224,85 @@ const App: React.FC = () => {
     const won = roundSummary?.winner === 'PLAYER';
     const nextRound = won ? round + 1 : round;
     setRound(nextRound);
-    
+
     const effectGold = pendingTurnEffects?.gold || 0;
     const newIncome = Math.min(player.income + 1, MAX_INCOME);
     const startingGold = newIncome + effectGold;
 
     setPlayer(prev => ({
-        ...prev,
-        gold: startingGold,
-        income: newIncome,
-        adventurePoints: Math.min(prev.adventurePoints + 1, MAX_ADVENTURE_POINTS),
-        tavernUpgradeCost: Math.max(0, prev.tavernUpgradeCost - 1),
+      ...prev,
+      gold: startingGold,
+      income: newIncome,
+      adventurePoints: Math.min(prev.adventurePoints + 1, MAX_ADVENTURE_POINTS),
+      tavernUpgradeCost: Math.max(0, prev.tavernUpgradeCost - 1),
     }));
-    
+
     setEnemyConfig([]);
     setPendingTurnEffects(null);
     setRoundSummary(null);
-    
+
     if (!isShopLocked) {
-        refreshShop();
+      refreshShop();
     } else {
-        setIsShopLocked(false);
+      setIsShopLocked(false);
     }
     setPhase(GamePhase.SHOP);
   };
 
   const toggleLanguage = () => {
-      handleInteraction();
-      playSound('click');
-      setLanguage(prev => prev === 'en' ? 'zh' : 'en');
+    handleInteraction();
+    playSound('click');
+    setLanguage(prev => prev === 'en' ? 'zh' : 'en');
   };
 
   const handleRestart = () => {
-      handleInteraction();
-      playSound('click');
-      setPhase(GamePhase.START_MENU);
-      setRound(1);
-      setIsInfiniteMode(false);
-      setPlayer({
-        hp: INITIAL_PLAYER_HP,
-        gold: INITIAL_GOLD,
-        income: INITIAL_INCOME,
-        adventurePoints: INITIAL_ADVENTURE_POINTS,
-        tavernTier: 1,
-        tavernUpgradeCost: getBaseTavernCost(1),
-        hand: Array(7).fill(null)
-      });
-      setShopCards([]);
-      setIsShopLocked(false);
-      setEnemyConfig([]);
-      setRoundSummary(null);
-      setHoveredCardInfo(null);
-      setNotifications([]);
-      setPendingTurnEffects(null);
-      setIsTransitioning(false);
+    handleInteraction();
+    playSound('click');
+    setPhase(GamePhase.START_MENU);
+    setRound(1);
+    setIsInfiniteMode(false);
+    setPlayer({
+      hp: INITIAL_PLAYER_HP,
+      gold: INITIAL_GOLD,
+      income: INITIAL_INCOME,
+      adventurePoints: INITIAL_ADVENTURE_POINTS,
+      tavernTier: 1,
+      tavernUpgradeCost: getBaseTavernCost(1),
+      hand: Array(7).fill(null)
+    });
+    setShopCards([]);
+    setIsShopLocked(false);
+    setEnemyConfig([]);
+    setRoundSummary(null);
+    setHoveredCardInfo(null);
+    setNotifications([]);
+    setPendingTurnEffects(null);
+    setIsTransitioning(false);
   };
 
   if (phase === GamePhase.START_MENU) {
-      return <StartMenu t={t} onStartGame={handleStartGame} onOpenCodex={handleOpenCodex} onToggleLanguage={toggleLanguage} onInteraction={handleInteraction} />;
+    return <StartMenu t={t} onStartGame={handleStartGame} onOpenCodex={handleOpenCodex} onToggleLanguage={toggleLanguage} onInteraction={handleInteraction} />;
   }
 
   if (phase === GamePhase.CODEX) {
     return (
-        <>
-            <Codex 
-                language={language} 
-                t={t} 
-                onBackToMenu={handleBackToMenu} 
-                onInteraction={handleInteraction} 
-                onHover={handleCardHover} 
-                onLeave={handleCardLeave} 
-            />
-            {hoveredCardInfo && (
-                <CardInfoPanel 
-                    card={hoveredCardInfo.card} 
-                    rect={hoveredCardInfo.rect} 
-                    language={language}
-                />
-            )}
-        </>
+      <>
+        <Codex
+          language={language}
+          t={t}
+          onBackToMenu={handleBackToMenu}
+          onInteraction={handleInteraction}
+          onHover={handleCardHover}
+          onLeave={handleCardLeave}
+        />
+        {hoveredCardInfo && (
+          <CardInfoPanel
+            card={hoveredCardInfo.card}
+            rect={hoveredCardInfo.rect}
+            language={language}
+          />
+        )}
+      </>
     );
   }
 
@@ -317,78 +316,78 @@ const App: React.FC = () => {
 
   return (
     <div className="bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-800 via-slate-950 to-black text-slate-100 font-sans flex flex-col h-screen overflow-hidden" onClick={handleInteraction}>
-      <TopBar 
-        player={player} 
-        round={round} 
-        t={t} 
+      <TopBar
+        player={player}
+        round={round}
+        t={t}
         language={language}
-        onBackToMenu={handleBackToMenu} 
+        onBackToMenu={handleBackToMenu}
         onAbandon={handleRestart}
         phase={phase}
       />
 
       <div className="flex-1 flex flex-col relative min-h-0">
         {(phase === GamePhase.COMBAT || phase === GamePhase.ROUND_OVER) && (
-            <div className="flex-1 p-6 flex items-center justify-center relative bg-slate-900">
-                {phase === GamePhase.COMBAT && (
-                     <div className="w-full h-full flex items-center justify-center p-4">
-                        <div className="w-full max-w-6xl aspect-video relative shadow-2xl rounded-xl overflow-hidden border border-slate-700">
-                            <BattleCanvas 
-                                playerHand={player.hand} 
-                                enemyConfig={enemyConfig}
-                                playerValue={playerArmyValue}
-                                enemyValue={enemyArmyValue}
-                                language={language}
-                                onBattleEnd={handleBattleEnd}
-                                phase={phase}
-                            />
-                        </div>
-                    </div>
-                )}
-                {phase === GamePhase.ROUND_OVER && roundSummary && (
-                    <RoundOverScreen summary={roundSummary} t={t} onNextRound={handleNextRound} />
-                )}
-            </div>
+          <div className="flex-1 p-6 flex items-center justify-center relative bg-slate-900">
+            {phase === GamePhase.COMBAT && (
+              <div className="w-full h-full flex items-center justify-center p-4">
+                <div className="w-full max-w-6xl aspect-video relative shadow-2xl rounded-xl overflow-hidden border border-slate-700">
+                  <BattleCanvas
+                    playerHand={player.hand}
+                    enemyConfig={enemyConfig}
+                    playerValue={playerArmyValue}
+                    enemyValue={enemyArmyValue}
+                    language={language}
+                    onBattleEnd={handleBattleEnd}
+                    phase={phase}
+                  />
+                </div>
+              </div>
+            )}
+            {phase === GamePhase.ROUND_OVER && roundSummary && (
+              <RoundOverScreen summary={roundSummary} t={t} onNextRound={handleNextRound} />
+            )}
+          </div>
         )}
 
         {phase === GamePhase.SHOP && (
-            <ShopScreen 
-                player={player}
-                setPlayer={setPlayer}
-                shopCards={shopCards}
-                setShopCards={setShopCards}
-                isShopLocked={isShopLocked}
-                setIsShopLocked={setIsShopLocked}
-                refreshShop={refreshShop}
-                enemyConfig={nextEnemies}
-                round={round}
-                isTransitioning={isTransitioning}
-                onStartCombat={startCombat}
-                onCardHover={handleCardHover}
-                onCardLeave={handleCardLeave}
-                setNotifications={setNotifications}
-                playSound={playSound}
-                handleInteraction={handleInteraction}
-                language={language}
-                t={t}
-            />
+          <ShopScreen
+            player={player}
+            setPlayer={setPlayer}
+            shopCards={shopCards}
+            setShopCards={setShopCards}
+            isShopLocked={isShopLocked}
+            setIsShopLocked={setIsShopLocked}
+            refreshShop={refreshShop}
+            enemyConfig={nextEnemies}
+            round={round}
+            isTransitioning={isTransitioning}
+            onStartCombat={startCombat}
+            onCardHover={handleCardHover}
+            onCardLeave={handleCardLeave}
+            setNotifications={setNotifications}
+            playSound={playSound}
+            handleInteraction={handleInteraction}
+            language={language}
+            t={t}
+          />
         )}
-        
+
         <div className="fixed bottom-32 right-8 flex flex-col gap-2 pointer-events-none z-50">
-            {notifications.map((note, i) => (
-                <div key={i} className="bg-slate-900/90 border border-green-500/50 text-green-300 px-4 py-3 rounded-lg shadow-xl animate-in slide-in-from-right fade-in duration-300 flex items-center gap-3 backdrop-blur-md">
-                    <ChevronUp className="text-green-500" size={16} />
-                    <span className="font-bold text-sm">{note}</span>
-                </div>
-            ))}
+          {notifications.map((note, i) => (
+            <div key={i} className="bg-slate-900/90 border border-green-500/50 text-green-300 px-4 py-3 rounded-lg shadow-xl animate-in slide-in-from-right fade-in duration-300 flex items-center gap-3 backdrop-blur-md">
+              <ChevronUp className="text-green-500" size={16} />
+              <span className="font-bold text-sm">{note}</span>
+            </div>
+          ))}
         </div>
 
         {hoveredCardInfo && phase === GamePhase.SHOP && (
-            <CardInfoPanel 
-                card={hoveredCardInfo.card} 
-                rect={hoveredCardInfo.rect} 
-                language={language}
-            />
+          <CardInfoPanel
+            card={hoveredCardInfo.card}
+            rect={hoveredCardInfo.rect}
+            language={language}
+          />
         )}
       </div>
     </div>
