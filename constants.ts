@@ -1,8 +1,7 @@
 
 import { CardData, UnitType } from './types';
 import { CARD_TEMPLATES } from './data/cardTemplates';
-import { UPGRADES } from './data/upgrades';
-
+import { EnergyType } from './types';
 export { CARD_TEMPLATES } from './data/cardTemplates';
 // Export UPGRADES from its data source to fix missing export error in Codex
 export { UPGRADES } from './data/upgrades';
@@ -11,16 +10,18 @@ export { UPGRADES } from './data/upgrades';
 export const DEBUG_ADVENTURE_LOG = true;
 
 // --- GAMEPLAY CONFIG ---
+export const INITIAL_ENERGY = [EnergyType.WHITE, EnergyType.WHITE, EnergyType.WHITE]
 export const INITIAL_PLAYER_HP = 3;
-export const INITIAL_INCOME = 3;
+export const INITIAL_INCOME = [EnergyType.WHITE, EnergyType.WHITE, EnergyType.WHITE];
+export const ADDTIONAL_INCOME = [];
 export const MAX_INCOME = 10;
-export const INITIAL_GOLD = 3; 
+//export const INITIAL_GOLD = 3; 
 export const INITIAL_ADVENTURE_POINTS = 6;
 export const MAX_ADVENTURE_POINTS = 6;
-export const ADVENTURE_COST = 2;
-export const ADVENTURE_REFUND = 1;
-export const REFRESH_COST = 1;
-export const TAVERN_UPGRADE_BASE_COST = 5;
+//export const ADVENTURE_COST = 2;
+//export const ADVENTURE_REFUND = 1;
+export const REFRESH_COST = [EnergyType.WHITE];
+export const TAVERN_UPGRADE_BASE_COST = 3;
 export const MAX_ROUNDS = 12;
 
 // --- TIME & SIMULATION CONSTANTS ---
@@ -46,8 +47,14 @@ export const SHAKE_ANIM_DURATION = 300;
 export const FLASH_ANIM_DURATION = 200;
 
 // Helper to determine the starting cost for the NEXT tier
-export const getBaseTavernCost = (currentTier: number): number => {
-    return TAVERN_UPGRADE_BASE_COST + (currentTier * 2);
+export const getBaseTavernCost = (level: number) => {
+  switch (level) {
+    case 1: return 5;
+    case 2: return 7;
+    case 3: return 9;
+    case 4: return 11;
+    default: return 999;
+  }
 };
 
 export const generateRandomCard = (maxTier: number, minTier: number = 1): CardData => {

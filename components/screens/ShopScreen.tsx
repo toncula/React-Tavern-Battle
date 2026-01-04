@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { PlayerState, CardData, UnitType } from '../../types';
+import { PlayerState, CardData, UnitType, EnergyType } from '../../types';
 import { Language, getTranslation } from '../../translations';
 import { useCardEffects } from '../../hooks/useCardEffects';
 import { generateRandomCard, REFRESH_COST, getBaseTavernCost } from '../../constants';
@@ -7,6 +7,8 @@ import ShopPanel from '../shop/ShopPanel';
 import ArmyPanel from '../shop/cards/ArmyPanel';
 import DiscoveryModal from '../modals/DiscoveryModal';
 import { SoundType } from '../../services/audioService';
+//import EnergyQueue from '../shop/EnergyQueue'; // New Import
+import { tryPayEnergy, createWhiteEnergyRequest } from '../../simulation/energyEngine'; // New Import
 
 interface ShopScreenProps {
     player: PlayerState;
@@ -36,14 +38,12 @@ const ShopScreen: React.FC<ShopScreenProps> = ({
     onCardHover, onCardLeave, setNotifications,
     playSound, handleInteraction, language, t
 }) => {
-    // Local UI State
     const [shopViewMode, setShopViewMode] = useState<'SHOP' | 'INTEL'>('SHOP');
     const [cardsSoldThisTurn, setCardsSoldThisTurn] = useState(0);
     const [discoveryOptions, setDiscoveryOptions] = useState<CardData[] | null>(null);
 
     const { applyBuyEffects, applySellEffects, applyTavernUpgradeEffects } = useCardEffects(language);
 
-    // Reset local turn stats when round changes
     useEffect(() => {
         setCardsSoldThisTurn(0);
     }, [round]);
@@ -53,7 +53,12 @@ const ShopScreen: React.FC<ShopScreenProps> = ({
     const handleBuyCard = (card: CardData) => {
         handleInteraction();
         if (isTransitioning) return;
-        if (player.gold < 3) {
+
+        // ENERGY CHECK using new Engine
+        const cost = 3;
+        const payment = tryPayEnergy(createWhiteEnergyRequest(cost), player.energyQueue);
+
+        if (!payment.success) {
             playSound('error');
             return;
         }
@@ -89,7 +94,7 @@ const ShopScreen: React.FC<ShopScreenProps> = ({
 
             setPlayer(prev => ({
                 ...prev,
-                gold: prev.gold - 3,
+                energyQueue: payment.newQueue, // Update Energy
                 hand: newHand
             }));
 
@@ -150,7 +155,7 @@ const ShopScreen: React.FC<ShopScreenProps> = ({
 
             setPlayer(prev => ({
                 ...prev,
-                gold: prev.gold - 3,
+                energyQueue: payment.newQueue, // Update Energy
                 hand: newHand
             }));
             setShopCards(prev => prev.filter(c => c.id !== card.id));
@@ -175,13 +180,15 @@ const ShopScreen: React.FC<ShopScreenProps> = ({
 
         setPlayer(prev => ({
             ...prev,
-            gold: prev.gold + 1,
+            // Refund Energy: Push 1 white energy to end of queue
+            energyQueue: [...prev.energyQueue, EnergyType.WHITE],
             hand: newHand
         }));
         onCardLeave();
     };
 
     const handleSelectDiscovery = (card: CardData) => {
+        // Discovery logic unchanged as it doesn't cost energy
         handleInteraction();
         if (isTransitioning) return;
         playSound('upgrade');
@@ -228,12 +235,17 @@ const ShopScreen: React.FC<ShopScreenProps> = ({
     const handleRefreshShopInternal = () => {
         handleInteraction();
         if (isTransitioning) return;
-        if (player.gold < REFRESH_COST) {
+
+        // ENERGY CHECK
+        const payment = tryPayEnergy(REFRESH_COST, player.energyQueue);
+
+        if (!payment.success) {
             playSound('error');
             return;
         }
+
         playSound('click');
-        setPlayer(prev => ({ ...prev, gold: prev.gold - REFRESH_COST }));
+        setPlayer(prev => ({ ...prev, energyQueue: payment.newQueue }));
         setIsShopLocked(false);
         refreshShop();
     };
@@ -249,10 +261,15 @@ const ShopScreen: React.FC<ShopScreenProps> = ({
         handleInteraction();
         if (isTransitioning) return;
         const cost = player.tavernUpgradeCost;
-        if (player.gold < cost || player.tavernTier >= 4) {
+
+        // ENERGY CHECK
+        const payment = tryPayEnergy(createWhiteEnergyRequest(cost), player.energyQueue);
+
+        if (!payment.success || player.tavernTier >= 4) {
             playSound('error');
             return;
         }
+
         playSound('upgrade');
 
         const { newHand, notifications: upgradeNotes } = applyTavernUpgradeEffects(player.hand);
@@ -263,7 +280,7 @@ const ShopScreen: React.FC<ShopScreenProps> = ({
 
         setPlayer(prev => ({
             ...prev,
-            gold: prev.gold - cost,
+            energyQueue: payment.newQueue,
             tavernTier: prev.tavernTier + 1,
             tavernUpgradeCost: getBaseTavernCost(prev.tavernTier + 1),
             hand: newHand

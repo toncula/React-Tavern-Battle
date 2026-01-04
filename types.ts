@@ -172,17 +172,26 @@ export enum GamePhase {
 export interface RoundSummary {
     winner: 'PLAYER' | 'ENEMY';
     damageTaken: number;
-    baseGold: number;
+    baseGold: number; // Technically baseEnergy now, keeping name to minimize refactor friction in engine
     effectGold: number;
     adventurePointsEarned: number;
     effects: string[];
 }
 
+export enum EnergyType {
+  WHITE = 'WHITE',
+  RED = 'RED',
+  GREEN = 'GREEN',
+  BLUE = 'BLUE',
+  BLACK = 'BLACK'
+}
+
 export interface PlayerState {
   hp: number;
-  gold: number;
-  income: number;
-  adventurePoints: number;
+  // gold: number; // REMOVED
+  energyQueue: EnergyType[]; // REPLACED gold
+  income: EnergyType[]; 
+  adventurePoints: number; // Kept for structure, though unused visibly
   tavernTier: number;
   tavernUpgradeCost: number;
   hand: (CardData | null)[];

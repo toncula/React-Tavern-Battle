@@ -3,12 +3,13 @@ import {
   PlayerState,
   CardData,
   GamePhase,
-  RoundSummary
+  RoundSummary,
+  EnergyType
 } from './types';
 import {
-  INITIAL_GOLD,
+  INITIAL_ENERGY,
   INITIAL_INCOME,
-  MAX_INCOME,
+  MAX_INCOME, // 假设最大收入上限仍沿用此常量名，代表最大长度 (例如 10)
   INITIAL_ADVENTURE_POINTS,
   MAX_ADVENTURE_POINTS,
   INITIAL_PLAYER_HP,
@@ -34,14 +35,19 @@ import GameOverScreen from './components/screens/GameOverScreen';
 import VictoryScreen from './components/screens/VictoryScreen';
 import RoundOverScreen from './components/screens/RoundOverScreen';
 
+// 引入 EnergyQueue 组件
+//import EnergyQueue from './components/shop/EnergyQueue';
+
 const App: React.FC = () => {
   const [phase, setPhase] = useState<GamePhase>(GamePhase.START_MENU);
   const [round, setRound] = useState(1);
   const [isInfiniteMode, setIsInfiniteMode] = useState(false);
+
+  // 核心修改: Income 现在是 EnergyType[]，初始化时需要展开复制
   const [player, setPlayer] = useState<PlayerState>({
     hp: INITIAL_PLAYER_HP,
-    gold: INITIAL_GOLD,
-    income: INITIAL_INCOME,
+    energyQueue: [...INITIAL_ENERGY],
+    income: [...INITIAL_INCOME], // 复制初始收入数组
     adventurePoints: INITIAL_ADVENTURE_POINTS,
     tavernTier: 1,
     tavernUpgradeCost: getBaseTavernCost(1),
@@ -93,8 +99,8 @@ const App: React.FC = () => {
     const initialTier = 1;
     setPlayer({
       hp: INITIAL_PLAYER_HP,
-      gold: INITIAL_GOLD,
-      income: INITIAL_INCOME,
+      energyQueue: [...INITIAL_ENERGY],
+      income: [...INITIAL_INCOME], // 重置为初始数组
       adventurePoints: INITIAL_ADVENTURE_POINTS,
       tavernTier: initialTier,
       tavernUpgradeCost: getBaseTavernCost(initialTier),
@@ -155,6 +161,9 @@ const App: React.FC = () => {
 
     const { newHand, goldGenerated, summaryEffects } = calculateTurnEndEffects(player.hand);
 
+    // 安全检查：确保 goldGenerated 是数字（它代表额外生成的白色能量数量）
+    const safeGoldGenerated = Number.isNaN(Number(goldGenerated)) ? 0 : Number(goldGenerated);
+
     setPlayer(prev => ({
       ...prev,
       hand: newHand
@@ -165,7 +174,7 @@ const App: React.FC = () => {
     }
 
     setPendingTurnEffects({
-      gold: goldGenerated,
+      gold: safeGoldGenerated,
       effects: summaryEffects
     });
 
@@ -195,16 +204,22 @@ const App: React.FC = () => {
       }
     }
 
-    const nextIncome = Math.min(player.income + 1, MAX_INCOME);
-    const baseGold = nextIncome;
-    const effectGold = pendingTurnEffects?.gold || 0;
+    // --- 预测下一回合的收入（用于展示） ---
+    // 复制当前收入数组
+    const nextIncomeQueue = [...player.income];
+    // 如果长度还没到上限，并且不是无限模式的特定限制，预测会增加一个白色能量
+    if (nextIncomeQueue.length < MAX_INCOME) {
+      nextIncomeQueue.push(EnergyType.WHITE);
+    }
+
+    const effectEnergyCount = Number(pendingTurnEffects?.gold) || 0;
     const effectTexts = pendingTurnEffects?.effects || [];
 
     setRoundSummary({
       winner,
       damageTaken: damage,
-      baseGold,
-      effectGold: effectGold,
+      baseIncome: nextIncomeQueue, // 传递整个数组给 Summary 界面
+      effectGold: effectEnergyCount,
       adventurePointsEarned: 1,
       effects: Array.from(new Set(effectTexts))
     });
@@ -225,14 +240,27 @@ const App: React.FC = () => {
     const nextRound = won ? round + 1 : round;
     setRound(nextRound);
 
-    const effectGold = pendingTurnEffects?.gold || 0;
-    const newIncome = Math.min(player.income + 1, MAX_INCOME);
-    const startingGold = newIncome + effectGold;
+    // 1. 获取额外能量的数量（来自卡牌特效）
+    const effectEnergyCount = Math.max(0, Math.floor(Number(pendingTurnEffects?.gold) || 0));
+
+    // 2. 计算新的收入数组（Income Growth）
+    const nextIncomeQueue = [...player.income];
+    if (nextIncomeQueue.length < MAX_INCOME) {
+      nextIncomeQueue.push(EnergyType.WHITE); // 每回合增加一个白色能量上限
+    }
+
+    // 3. 生成本回合的能量供给
+    // 基础收入 + 特效生成的白色能量
+    const generatedIncome = [...nextIncomeQueue];
+    const generatedEffects = Array(effectEnergyCount).fill(EnergyType.WHITE);
+
+    const newEnergyBatch = [...generatedIncome, ...generatedEffects];
 
     setPlayer(prev => ({
       ...prev,
-      gold: startingGold,
-      income: newIncome,
+      // 将新生成的能量添加到现有队列的末尾
+      energyQueue: [...prev.energyQueue, ...newEnergyBatch],
+      income: nextIncomeQueue, // 更新玩家的收入属性（已成长）
       adventurePoints: Math.min(prev.adventurePoints + 1, MAX_ADVENTURE_POINTS),
       tavernUpgradeCost: Math.max(0, prev.tavernUpgradeCost - 1),
     }));
@@ -263,8 +291,8 @@ const App: React.FC = () => {
     setIsInfiniteMode(false);
     setPlayer({
       hp: INITIAL_PLAYER_HP,
-      gold: INITIAL_GOLD,
-      income: INITIAL_INCOME,
+      energyQueue: [...INITIAL_ENERGY],
+      income: [...INITIAL_INCOME], // 确保重置为初始数组
       adventurePoints: INITIAL_ADVENTURE_POINTS,
       tavernTier: 1,
       tavernUpgradeCost: getBaseTavernCost(1),

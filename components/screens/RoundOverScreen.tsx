@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Trophy, Heart, Coins, TrendingUp, ArrowRight, RefreshCw, Sparkles, Skull } from 'lucide-react';
-import { RoundSummary } from '../../types';
+import React from 'react';
+import { Trophy, Heart, TrendingUp, ArrowRight, RefreshCw, Sparkles, Skull } from 'lucide-react';
+import { RoundSummary, EnergyType } from '../../types';
 
 interface RoundOverScreenProps {
     summary: RoundSummary;
@@ -11,10 +11,28 @@ interface RoundOverScreenProps {
 const RoundOverScreen: React.FC<RoundOverScreenProps> = ({ summary, t, onNextRound }) => {
     const isVictory = summary.winner === 'PLAYER';
 
+    const renderEnergyBalls = (queue: EnergyType[]) => {
+        if (!queue) return null;
+        return (
+            <div className="flex -space-x-1.5 flex-wrap justify-end max-w-[200px]">
+                {queue.map((type, i) => (
+                    <div
+                        key={i}
+                        className={`w-4 h-4 rounded-full border border-slate-300 shadow-sm shrink-0 mb-1 ${type === EnergyType.WHITE ? 'bg-white' :
+                                type === EnergyType.RED ? 'bg-red-500' :
+                                    type === EnergyType.GREEN ? 'bg-emerald-500' :
+                                        type === EnergyType.BLUE ? 'bg-blue-500' : 'bg-slate-500'
+                            }`}
+                    />
+                ))}
+            </div>
+        );
+    };
+
     return (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-300">
             <div className={`
-          relative w-full max-w-md p-0 rounded-3xl overflow-hidden shadow-2xl flex flex-col items-center
+          relative w-full max-w-md p-0 rounded-3xl overflow-hidden shadow-2xl flex flex-col items-center pointer-events-auto
           ${isVictory ? 'shadow-[0_0_50px_rgba(234,179,8,0.3)]' : 'shadow-[0_0_50px_rgba(220,38,38,0.3)]'}
           border-2 ${isVictory ? 'border-yellow-500/50' : 'border-red-500/50'}
       `}>
@@ -63,22 +81,25 @@ const RoundOverScreen: React.FC<RoundOverScreenProps> = ({ summary, t, onNextRou
 
                         {/* Rewards Section */}
                         <div className="p-5 space-y-4">
-                            {/* Gold Reward */}
+                            {/* Base Income Display */}
                             <div className="flex items-center justify-between">
-                                <div className="flex flex-col">
-                                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t.ui.income}</span>
-                                    <div className="flex items-center gap-1 text-[10px] text-slate-500">
-                                        <span>{t.ui.base_income}: {summary.baseGold}</span>
-                                        {summary.effectGold > 0 && <span className="text-green-400 font-bold"> +{summary.effectGold} Bonus</span>}
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
-                                    <span className="text-xl font-black text-yellow-400">+{summary.baseGold + summary.effectGold}</span>
-                                    <Coins size={20} className="text-yellow-500 fill-yellow-500" />
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t.ui.income}</span>
+                                <div className="flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-lg border border-slate-800 min-h-[36px]">
+                                    {/* Fallback to empty array if undefined to prevent crash */}
+                                    {renderEnergyBalls(summary.baseIncome || [])}
                                 </div>
                             </div>
 
-                            {/* Essence Reward Removed */}
+                            {/* Bonus Income Display */}
+                            {summary.effectGold > 0 && (
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs font-bold text-green-400 uppercase tracking-wide">Bonus Energy</span>
+                                    <div className="flex items-center gap-2 bg-slate-950/50 px-3 py-1.5 rounded-lg border border-green-900/30">
+                                        <span className="text-xs text-green-400 font-bold mr-1">+{summary.effectGold}</span>
+                                        <div className="w-3 h-3 rounded-full bg-white border border-slate-300" />
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Effects Section */}
@@ -102,11 +123,11 @@ const RoundOverScreen: React.FC<RoundOverScreenProps> = ({ summary, t, onNextRou
                 </div>
 
                 {/* Action Button */}
-                <div className="w-full p-8 pt-0 z-10">
+                <div className="w-full p-8 pt-0 z-20">
                     <button
                         onClick={onNextRound}
                         className={`
-                      w-full group py-4 rounded-xl font-black text-sm uppercase tracking-[0.15em] shadow-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] border border-white/10 relative overflow-hidden
+                      w-full group py-4 rounded-xl font-black text-sm uppercase tracking-[0.15em] shadow-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] border border-white/10 relative overflow-hidden cursor-pointer pointer-events-auto
                       ${isVictory
                                 ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-900/30'
                                 : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-600'}

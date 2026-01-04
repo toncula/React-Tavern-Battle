@@ -66,12 +66,7 @@ const UnitCard: React.FC<UnitCardProps> = ({
     const isMeleeRange = stats.range <= 30;
     const isGolden = card.isGolden;
 
-    // Note: Adventure features removed, so traits/upgrades visualization is kept minimal or hidden if not needed.
-    // We keep showing traits if they exist (e.g. from previous saves or pre-configured units), 
-    // but the UI to add them is gone.
     const isEnemy = variant === 'enemy';
-    const isUpgradable = !isEnemy && card.tier > 0 && card.traits.length > 0;
-
 
     useEffect(() => {
         if (card.justBought && (Date.now() - card.justBought < RECENT_PURCHASE_WINDOW) && location === 'HAND') {
@@ -162,16 +157,6 @@ const UnitCard: React.FC<UnitCardProps> = ({
                             {t.ui.recruited}
                         </span>
                     </div>
-                    {Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className="absolute w-1 h-1 bg-white rounded-full animate-[uc-particle_0.6s_ease-out_forwards]"
-                            style={{
-                                top: '50%', left: '50%',
-                                '--tx': `${Math.cos(i * Math.PI / 4) * 80}px`,
-                                '--ty': `${Math.sin(i * Math.PI / 4) * 80}px`,
-                                animationDelay: `${Math.random() * 0.2}s`
-                            } as React.CSSProperties}
-                        />
-                    ))}
                 </div>
             )}
 
@@ -270,7 +255,6 @@ const UnitCard: React.FC<UnitCardProps> = ({
                     </div>
                 )}
 
-                {/* We keep the trait list display if traits exist, but disable upgrading UI */}
                 {card.traits.length > 0 && (
                     <div className="flex-1 overflow-hidden flex flex-col relative">
                         <div className="text-[10px] text-slate-500 uppercase font-bold mb-0.5 px-0.5 border-b border-slate-700/50 flex justify-between">
@@ -298,19 +282,23 @@ const UnitCard: React.FC<UnitCardProps> = ({
                             <button
                                 onClick={() => onBuy?.(card)}
                                 disabled={!canAfford}
-                                className={`w-full py-1.5 rounded font-bold text-sm transition-all border shadow-lg active:scale-95
+                                className={`w-full py-1.5 rounded font-bold text-sm transition-all border shadow-lg active:scale-95 flex items-center justify-center gap-1
                             ${canAfford
                                         ? 'bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-yellow-50 border-yellow-400 shadow-yellow-900/40'
                                         : 'bg-slate-700 text-slate-500 border-slate-600 cursor-not-allowed'}
                         `}
                             >
-                                {t.ui.buy_cost.replace('{0}', '3')}
+                                {/* Display Cost in Energy Balls logic (Simplified for now as White * 3) */}
+                                <div className="flex -space-x-1">
+                                    <div className="w-3 h-3 rounded-full bg-white border border-slate-300" />
+                                    <div className="w-3 h-3 rounded-full bg-white border border-slate-300" />
+                                    <div className="w-3 h-3 rounded-full bg-white border border-slate-300" />
+                                </div>
                             </button>
                         )}
 
                         {location === 'HAND' && (
                             <div className="flex gap-2">
-                                {/* Adventure/Upgrade button removed */}
                                 <button
                                     onClick={() => onSell?.(card)}
                                     className="w-full px-2 py-1.5 bg-red-900/30 hover:bg-red-800/80 text-red-200 rounded font-bold text-xs transition-colors border border-red-800/50 active:scale-95"

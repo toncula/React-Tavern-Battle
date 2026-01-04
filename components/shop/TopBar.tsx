@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { PlayerState } from '../../types';
-import { Heart, Coins, LogOut, AlertTriangle } from 'lucide-react';
+import { PlayerState, EnergyType } from '../../types';
+import { Heart, LogOut, AlertTriangle, Zap } from 'lucide-react';
 import { INITIAL_PLAYER_HP } from '../../constants';
 
 interface TopBarProps {
@@ -16,6 +16,23 @@ interface TopBarProps {
 const TopBar: React.FC<TopBarProps> = ({ player, round, t, onBackToMenu, onAbandon, phase }) => {
     const [showAbandonModal, setShowAbandonModal] = useState(false);
 
+    // 辅助渲染小球
+    const renderIncomeBalls = (incomeQueue: EnergyType[]) => (
+        <div className="flex -space-x-1.5 items-center">
+            {incomeQueue.map((type, i) => (
+                <div
+                    key={i}
+                    className={`w-3.5 h-3.5 rounded-full border border-slate-600 shadow-sm ${type === EnergyType.WHITE ? 'bg-white' :
+                            type === EnergyType.RED ? 'bg-red-500' :
+                                type === EnergyType.GREEN ? 'bg-emerald-500' :
+                                    type === EnergyType.BLUE ? 'bg-blue-500' : 'bg-slate-500'
+                        }`}
+                    title={type}
+                />
+            ))}
+        </div>
+    );
+
     return (
         <>
             <div className="h-14 shrink-0 bg-slate-950/80 backdrop-blur-md border-b border-slate-800 flex items-center justify-between px-6 shadow-md z-30 sticky top-0">
@@ -28,11 +45,16 @@ const TopBar: React.FC<TopBarProps> = ({ player, round, t, onBackToMenu, onAband
                             <Heart className="text-red-500 fill-red-500" size={16} />
                             <span className="font-bold text-sm">{player.hp}/{INITIAL_PLAYER_HP}</span>
                         </div>
-                        <div className="flex items-center gap-2 bg-slate-900 px-3 py-1 rounded-full border border-yellow-900/50 shadow-inner" title="Gold / Income">
-                            <Coins className="text-yellow-400 fill-yellow-400" size={16} />
-                            <span className="font-bold text-sm">{player.gold}/{player.income}</span>
+
+                        {/* 修改: 显示收入队列 */}
+                        <div className="flex items-center gap-3 bg-slate-900 px-3 py-1.5 rounded-full border border-slate-700/50 shadow-inner" title="Next Turn Income">
+                            <div className="flex items-center gap-1">
+                                <Zap className="text-yellow-400 fill-yellow-400" size={14} />
+                                <span className="font-bold text-xs text-slate-400 uppercase tracking-wide">Income:</span>
+                            </div>
+                            {renderIncomeBalls(player.income)}
                         </div>
-                        {/* Adventure points display removed */}
+
                         <div className="text-slate-500 font-bold uppercase tracking-wide text-[10px] bg-slate-800 px-2 py-1 rounded">
                             {t.ui.round} <span className="text-slate-200 text-sm ml-1">{round}</span>
                         </div>
